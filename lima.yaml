@@ -1,0 +1,6 @@
+arch: "riscv64"
+plain: true
+
+images:
+  - location: "https://cloud-images.ubuntu.com/releases/26.04/release/ubuntu-26.04-server-cloudimg-riscv64.img"
+    arch: "riscv64"

@@ -1,0 +1,73 @@
+%{
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+extern char **environ;
+%}
+
+struct bin_entry {
+    const char *name;
+    const char *path;
+};
+
+%struct-type
+%define lookup-function-name bin_lookup
+%define hash-function-name bin_hash
+%compare-lengths
+%readonly-tables
+
+%%
+{{ GPERF KEY-VALUES }}%%
+
+static const char *const binaries[] = {
+    {{ GPERF KEYS }}
+};
+
+#define PROGRAM {{ GPERF PROGRAM }}
+
+static void print_usage() {
+    size_t i;
+
+    fprintf(stderr, "usage: %s <binary> [args...]\n", PROGRAM);
+    fprintf(stderr, "   or: <binary> [args...]\n\n");
+    fprintf(stderr, "available binaries:\n");
+
+    for (i = 0; i < sizeof(binaries) / sizeof(binaries[0]); i++) {
+        fprintf(stderr, "  %s\n", binaries[i]);
+    }
+}
+
+int main(int argc, char **argv) {
+    char *bin, **new_argv;
+    const struct bin_entry *entry;
+
+    bin = basename(argv[0]);
+    new_argv = argv;
+
+    if (strcmp(bin, PROGRAM) == 0) {
+        if (argc < 2) {
+            print_usage();
+
+            return 1;
+        }
+
+        bin = argv[1];
+        new_argv = &argv[1];
+    }
+
+    entry = bin_lookup(bin, strlen(bin));
+    if (entry == NULL) {
+        fprintf(stderr, "unknown binary: %s\n", bin);
+        print_usage();
+
+        return 1;
+    }
+
+    execve(entry->path, new_argv, environ);
+    perror("execve");
+
+    return 1;
+}
