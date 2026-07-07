@@ -64,14 +64,8 @@
         echo "########################################"
       )
 
-      resultRISCV="$(
-        nix build --print-out-paths --no-link .#nixodus-test-riscv64
-      )"
-
-      limactl copy -r "$resultRISCV" "$LIMA_INSTANCE:/tmp/resultRISCV"
-
-      limactl copy "$(realpath "$resultRISCV/bin/nixodus-packages")" \
-        "$LIMA_INSTANCE:/tmp/nixodus-packages"
+      result="$(nix run . -- --system riscv64-linux hello sqlite postgresql)"
+      limactl copy -r "$result" "$LIMA_INSTANCE:/tmp/result"
 
       (
         set +x
@@ -79,16 +73,14 @@
         lima sudo sh -c '
           set -ex
 
-          resultRISCV="/tmp/resultRISCV"
-          pkgsRISCV="$resultRISCV/bin/nixodus-packages"
+          result="/tmp/result"
+          pkgs="$result/bin/nixodus-packages"
 
-          rm "$pkgsRISCV"
-          ln -s /tmp/nixodus-packages "$pkgsRISCV"
-          "$pkgsRISCV" hello --version
-          "$pkgsRISCV" sqlite3 --version
-          "$pkgsRISCV" psql --version
-          "$pkgsRISCV" postgres --version
-          "$resultRISCV/bin/pg_ctl" --version
+          "$pkgs" hello --version
+          "$pkgs" sqlite3 --version
+          "$pkgs" psql --version
+          "$pkgs" postgres --version
+          "$result/bin/pg_ctl" --version
         '
       )
     '';

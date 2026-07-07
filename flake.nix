@@ -59,10 +59,6 @@
                   sqlite
                 ];
             };
-
-            nixodus-test-riscv64 = self'.packages.nixodus-test.override {
-              crossSystem = "riscv64-linux";
-            };
           };
         };
     });
