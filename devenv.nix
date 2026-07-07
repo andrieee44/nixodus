@@ -3,9 +3,7 @@
   env.LIMA_INSTANCE = "nixodus-riscv-test";
 
   packages = with pkgs; [
-    coreutils
     git
-    gperf
     lima-full
     nixfmt
   ];
