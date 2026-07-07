@@ -54,7 +54,7 @@ func run() error {
 		&args.System,
 		"system",
 		"CURRENT",
-		`Target platform e.g. "x86-64_linux"`,
+		`Target platform e.g. "x86_64-linux"`,
 	)
 
 	flag.BoolVar(
