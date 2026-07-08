@@ -22,7 +22,7 @@
           nix-appimage,
           pkgs,
         }:
-        pkgs.callPackage ./nixodus.nix {
+        pkgs.callPackage ./mkNixodus.nix {
           inherit crossPackages;
           inherit crossSystem;
           inherit nix-appimage;
@@ -52,6 +52,7 @@
               inherit (inputs) nix-appimage;
               inherit pkgs;
               crossSystem = system;
+
               crossPackages =
                 crossPkgs: with crossPkgs; [
                   hello
