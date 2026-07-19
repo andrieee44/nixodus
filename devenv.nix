@@ -39,11 +39,13 @@
 
   scripts = {
     nixodus-test.exec = ''
+      set -euo pipefail
+
       echo "########################################"
       echo "#            NATIVE MACHINE            #"
       echo "########################################"
 
-      set -ex
+      set -x
 
       result="$(nix build --print-out-paths --no-link .#nixodus-test)"
       pkgs="$result/bin/nixodus-packages"
@@ -69,7 +71,7 @@
         set +x
 
         lima sudo sh -c '
-          set -ex
+          set -eux
 
           result="/tmp/result"
           pkgs="$result/bin/nixodus-packages"

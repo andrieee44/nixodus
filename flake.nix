@@ -38,10 +38,10 @@
         {
           apps = {
             nixodus.program = pkgs.buildGoModule {
+              meta.mainProgram = "nixodus";
               name = "nixodus-cmd";
               src = ./cmd/nixodus;
               vendorHash = null;
-              meta.mainProgram = "nixodus";
             };
 
             default = self'.apps.nixodus;

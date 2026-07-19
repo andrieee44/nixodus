@@ -14,10 +14,10 @@ let
   buildPackages = crossPkgs.buildPackages;
 
   codegen = buildPackages.buildGoModule {
+    meta.mainProgram = "codegen";
     name = "nixodus-codegen";
     src = ./cmd/codegen;
     vendorHash = null;
-    meta.mainProgram = "codegen";
   };
 
   packageList = buildPackages.writeText "nixodus-package-list" (
