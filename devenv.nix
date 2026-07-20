@@ -65,6 +65,7 @@
       )
 
       result="$(nix run . -- --system riscv64-linux hello sqlite postgresql)"
+      lima sudo rm -rf /tmp/result
       limactl copy -r "$result" "$LIMA_INSTANCE:/tmp/result"
 
       (
