@@ -1,4 +1,5 @@
 arch: "riscv64"
+mounts: []
 plain: true
 
 images:
