@@ -20,58 +20,53 @@ let
     vendorHash = null;
   };
 
-  packageList = buildPackages.writeText "nixodus-package-list" (
-    builtins.concatStringsSep "\n" (crossPackages crossPkgs)
+  target-packages = buildPackages.writeText "nixodus-target-packages" (
+    builtins.toJSON (crossPackages crossPkgs)
   );
 
-  program =
-    let
-      name = "nixodus-packages";
-    in
-    crossPkgs.stdenv.mkDerivation {
-      inherit name;
-      dontUnpack = true;
-      meta.mainProgram = name;
+  nixodus-packages = crossPkgs.stdenv.mkDerivation {
+    dontUnpack = true;
+    meta.mainProgram = "nixodus-packages";
+    name = "nixodus-packages";
 
-      nativeBuildInputs = [
-        buildPackages.gperf
-        codegen
-      ];
+    nativeBuildInputs = [
+      buildPackages.gperf
+      codegen
+    ];
 
-      buildPhase = ''
-        mkdir -p "$out/bin"
+    buildPhase = ''
+      mkdir -p "$out/bin"
 
-        ${lib.getExe codegen} "${name}" "$out/bin" \
-          < "${packageList}" > "${name}.gperf"
+      "${lib.getExe codegen}" "$out/bin" \
+        < "${target-packages}" > "nixodus-packages.gperf"
 
-        gperf "${name}.gperf" --output-file "${name}.c"
-        $CC -o "$out/bin/${name}" "${name}.c"
-      '';
-    };
+      gperf "nixodus-packages.gperf" --output-file "nixodus-packages.c"
+      $CC -o "$out/bin/nixodus-packages" "nixodus-packages.c"
+    '';
+  };
 
-  appImageBin =
-    let
-      staticCallPackage = crossPkgs.pkgsStatic.callPackage;
+  staticCallPackage = crossPkgs.pkgsStatic.callPackage;
 
-      appImage =
-        staticCallPackage "${nix-appimage}/mkAppImage.nix"
-          {
-            mkappimage-apprun = staticCallPackage "${nix-appimage}/appruns/userns-chroot" { };
-            mkappimage-runtime = staticCallPackage "${nix-appimage}/runtimes/appimage-type2-runtime" { };
-          }
-          {
-            program = lib.getExe program;
-          };
-    in
+  appImage =
+    staticCallPackage "${nix-appimage}/mkAppImage.nix"
+      {
+        mkappimage-apprun = staticCallPackage "${nix-appimage}/appruns/userns-chroot" { };
+        mkappimage-runtime = staticCallPackage "${nix-appimage}/runtimes/appimage-type2-runtime" { };
+      }
+      {
+        program = lib.getExe nixodus-packages;
+      };
+
+  final =
     crossPkgs.runCommand "nixodus-packages"
       {
         nativeBuildInputs = [ buildPackages.lndir ];
       }
       ''
         mkdir -p "$out/bin"
-        lndir "${program}" "$out"
+        lndir "${nixodus-packages}" "$out"
         rm "$out/bin/nixodus-packages"
         ln -s "${appImage}" "$out/bin/nixodus-packages"
       '';
 in
-appImageBin
+final

@@ -1,10 +1,10 @@
 package main
 
 import (
-	"bufio"
 	_ "embed"
+	"encoding/json"
+	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,7 +13,7 @@ import (
 //go:embed main.gperf
 var mainGperf string
 
-func cString(s string) string {
+func hexString(s string) string {
 	var (
 		b       byte
 		builder strings.Builder
@@ -30,101 +30,150 @@ func cString(s string) string {
 	return builder.String()
 }
 
-func walkPackages(program, outBin string) (string, string, error) {
+func walkPackageBin(
+	cmds map[string]string,
+	target, pkg string,
+	keyVals, keys *strings.Builder,
+) error {
 	var (
-		scanner       *bufio.Scanner
-		cmds          map[string]string
-		keyVals, keys strings.Builder
-		pkg, prevPkg  string
 		entries       []os.DirEntry
-		entry         os.DirEntry
-		info          fs.FileInfo
+		fi            os.FileInfo
+		name, prevPkg string
+		i             int
 		ok            bool
 		err           error
 	)
 
-	scanner = bufio.NewScanner(os.Stdin)
-	cmds = make(map[string]string)
+	entries, err = os.ReadDir(filepath.Join(pkg, "bin"))
+	if err != nil {
+		return err
+	}
 
-	for scanner.Scan() {
-		pkg = scanner.Text()
-
-		entries, err = os.ReadDir(filepath.Join(pkg, "bin"))
+	for i = range entries {
+		fi, err = entries[i].Info()
 		if err != nil {
-			return "", "", err
+			return err
 		}
 
-		for _, entry = range entries {
-			info, err = entry.Info()
-			if err != nil {
-				return "", "", err
-			}
+		if fi.IsDir() || fi.Mode()&0111 == 0 {
+			continue
+		}
 
-			if entry.IsDir() || info.Mode()&0111 == 0 {
-				continue
-			}
+		name = entries[i].Name()
 
-			prevPkg, ok = cmds[entry.Name()]
-			if ok {
-				return "", "", fmt.Errorf(
-					"%q: duplicate binary %q (used by %q)",
-					pkg, entry.Name(), prevPkg,
-				)
-			}
-
-			cmds[entry.Name()] = pkg
-
-			fmt.Fprintf(
-				&keyVals,
-				"%s, %s\n",
-				cString(entry.Name()),
-				cString(filepath.Join(pkg, "bin", entry.Name())),
+		prevPkg, ok = cmds[name]
+		if ok {
+			return fmt.Errorf(
+				"%q: duplicate binary %q (used by %q)",
+				pkg, name, prevPkg,
 			)
+		}
 
-			fmt.Fprintf(
-				&keys,
-				"%s,\n",
-				cString(entry.Name()),
-			)
+		cmds[name] = pkg
 
-			err = os.Symlink(program, filepath.Join(outBin, entry.Name()))
-			if err != nil {
-				return "", "", err
-			}
+		fmt.Fprintf(
+			keyVals,
+			"%s, %s\n",
+			hexString(name),
+			hexString(filepath.Join(pkg, "bin", name)),
+		)
+
+		fmt.Fprintf(
+			keys,
+			"%s,\n",
+			hexString(name),
+		)
+
+		err = os.Symlink("nixodus-packages", filepath.Join(target, name))
+		if err != nil {
+			return err
 		}
 	}
 
-	return keyVals.String(), keys.String(), scanner.Err()
+	return nil
 }
 
-func renderGperf(keyVals, keys, program string) error {
-	var err error
+func walkPackages(target string, decoder *json.Decoder) error {
+	var (
+		keyVals, keys strings.Builder
+		cmds          map[string]string
+		pkg           string
+		token         json.Token
+		delim         json.Delim
+		ok            bool
+		err           error
+	)
+
+	cmds = make(map[string]string)
+
+	for decoder.More() {
+		err = decoder.Decode(&pkg)
+		if err != nil {
+			return err
+		}
+
+		walkPackageBin(cmds, target, pkg, &keyVals, &keys)
+	}
+
+	token, err = decoder.Token()
+	if err != nil {
+		return err
+	}
+
+	delim, ok = token.(json.Delim)
+	if !ok || delim != ']' {
+		return errors.New("expected ']'")
+	}
 
 	_, err = strings.NewReplacer(
-		"{{ GPERF KEY-VALUES }}", keyVals,
-		"{{ GPERF KEYS }}", keys,
-		"{{ GPERF PROGRAM }}", cString(program),
+		"{{ GPERF KEY-VALUES }}", keyVals.String(),
+		"{{ GPERF KEYS }}", keys.String(),
 	).WriteString(
 		os.Stdout,
 		mainGperf,
 	)
+	if err != nil {
+		return err
+	}
 
-	return err
+	return nil
+}
+
+func run() error {
+	var (
+		target  string
+		decoder *json.Decoder
+		token   json.Token
+		delim   json.Delim
+		ok      bool
+		err     error
+	)
+
+	target = os.Args[1]
+	decoder = json.NewDecoder(os.Stdin)
+
+	token, err = decoder.Token()
+	if err != nil {
+		return err
+	}
+
+	delim, ok = token.(json.Delim)
+	if !ok || delim != '[' {
+		return errors.New("expected '['")
+	}
+
+	err = walkPackages(target, decoder)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func main() {
-	var (
-		keyVals, keys string
-		err           error
-	)
+	var err error
 
-	keyVals, keys, err = walkPackages(os.Args[1], os.Args[2])
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-
-	err = renderGperf(keyVals, keys, os.Args[1])
+	err = run()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

@@ -26,7 +26,7 @@ static const char *const binaries[] = {
     {{ GPERF KEYS }}
 };
 
-#define PROGRAM {{ GPERF PROGRAM }}
+#define PROGRAM "nixodus-packages"
 
 static void print_usage() {
     size_t i;

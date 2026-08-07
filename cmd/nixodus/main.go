@@ -13,18 +13,18 @@ import (
 var mainNix string
 
 func run() error {
-	type options struct {
-		Nixpkgs     string
-		Nixodus     string
+	type nixArgs struct {
 		NixAppImage string
-		System      string
+		Nixodus     string
+		Nixpkgs     string
 		Packages    []string
-		useJSON     bool
+		System      string
 	}
 
 	var (
-		opts     options
-		optsFile *os.File
+		args     nixArgs
+		flagJSON bool
+		argsFile *os.File
 		cmd      *exec.Cmd
 		err      error
 	)
@@ -34,9 +34,9 @@ func run() error {
 Bundle multiple Nix PACKAGE(S) into a single multicall binary
 
 Examples:
-  %[1]s hello dos2unix
-  %[1]s --system riscv64-linux hello
-  echo '{"packages": ["hello"]}' | %[1]s --json
+  %[1]s hello haskell.compiler.ghcHEAD
+  %[1]s --system riscv64-linux hello haskell.compiler.ghcHEAD
+  echo '[ "hello", "haskell.compiler.ghcHEAD" ]' | %[1]s --json
 
 Flags:
 `, os.Args[0])
@@ -45,35 +45,35 @@ Flags:
 	}
 
 	flag.StringVar(
-		&opts.Nixpkgs,
-		"nixpkgs",
-		"github:NixOS/nixpkgs/nixos-26.05",
-		"nixpkgs flake reference",
-	)
-
-	flag.StringVar(
-		&opts.Nixodus,
-		"nixodus",
-		"github:andrieee44/nixodus",
-		"nixodus flake reference",
-	)
-
-	flag.StringVar(
-		&opts.NixAppImage,
+		&args.NixAppImage,
 		"nix-appimage",
 		"github:ralismark/nix-appimage",
 		"nix-appimage flake reference",
 	)
 
 	flag.StringVar(
-		&opts.System,
+		&args.Nixodus,
+		"nixodus",
+		"github:andrieee44/nixodus",
+		"nixodus flake reference",
+	)
+
+	flag.StringVar(
+		&args.Nixpkgs,
+		"nixpkgs",
+		"github:NixOS/nixpkgs/nixos-26.05",
+		"nixpkgs flake reference",
+	)
+
+	flag.StringVar(
+		&args.System,
 		"system",
 		"CURRENT",
 		`Target platform e.g. "x86_64-linux"`,
 	)
 
 	flag.BoolVar(
-		&opts.useJSON,
+		&flagJSON,
 		"json",
 		false,
 		"Read JSON from stdin",
@@ -81,29 +81,29 @@ Flags:
 
 	flag.Parse()
 
-	optsFile, err = os.CreateTemp(os.TempDir(), "nixodus-*.json")
+	argsFile, err = os.CreateTemp(os.TempDir(), "nixodus-*.json")
 	if err != nil {
 		return err
 	}
-	defer os.Remove(optsFile.Name())
-	defer optsFile.Close()
+	defer os.Remove(argsFile.Name())
+	defer argsFile.Close()
 
-	opts.Packages = flag.Args()
-	if opts.useJSON {
-		err = json.NewDecoder(os.Stdin).Decode(&opts.Packages)
+	args.Packages = flag.Args()
+	if flagJSON {
+		err = json.NewDecoder(os.Stdin).Decode(&args.Packages)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = json.NewEncoder(optsFile).Encode(opts)
+	err = json.NewEncoder(argsFile).Encode(args)
 	if err != nil {
 		return err
 	}
 
 	cmd = exec.Command(
 		"nix", "build", "--impure", "--no-link", "--print-out-paths",
-		"--argstr", "argsFile", optsFile.Name(),
+		"--argstr", "argsFile", argsFile.Name(),
 		"--expr", mainNix,
 	)
 	cmd.Stdout = os.Stdout
