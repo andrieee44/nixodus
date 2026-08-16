@@ -2,7 +2,7 @@
 let
   args = builtins.fromJSON (builtins.readFile argsFile);
   pkgs = (builtins.getFlake args.Nixpkgs).legacyPackages.${builtins.currentSystem};
-  lib = pkgs.lib;
+  inherit (pkgs) lib;
 
   nixodus = (builtins.getFlake args.Nixodus).lib.mkNixodus {
     inherit pkgs;

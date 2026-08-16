@@ -1,86 +1,82 @@
 { config, pkgs, ... }:
 {
-  packages = with pkgs; [
-    git
-    jq
-    lima-full
-    nixfmt
-  ];
+  git-hooks.hooks = {
+    # Bash
+    shellcheck.enable = true;
+    shfmt.enable = true;
+
+    # Go
+    gofmt.enable = true;
+    golangci-lint.enable = true;
+
+    # Markdown
+    markdownlint = {
+      enable = true;
+      settings.configuration.MD013.code_blocks = false;
+    };
+
+    # Miscellaneous
+    check-added-large-files.enable = true;
+    check-merge-conflicts.enable = true;
+    detect-private-keys.enable = true;
+    end-of-file-fixer.enable = true;
+    trim-trailing-whitespace.enable = true;
+
+    # Nix
+    deadnix.enable = true;
+    nixfmt.enable = true;
+    statix.enable = true;
+
+    # Nixodus
+    nixodus = {
+      enable = true;
+      entry = "devenv tasks run nixodus:test";
+      pass_filenames = false;
+    };
+
+    # YAML
+    check-yaml.enable = true;
+    yamllint.enable = true;
+  };
 
   languages = {
     go.enable = true;
     nix.enable = true;
   };
 
-  processes = {
-    limactl = {
-      exec = ''
-        limactl create --name "nixodus-riscv-test" \
-          "${config.git.root}/lima.yaml" ||
-          true
+  packages = with pkgs; [
+    git
+    jaq
+    nixfmt
+  ];
 
-        limactl start --name "nixodus-riscv-test"
-      '';
+  tasks."nixodus:test" = {
+    before = [ "devenv:enterTest" ];
 
-      ready = {
-        period = 1;
-
-        exec = ''
-          status="$(
-            limactl list "nixodus-riscv-test" --format '{{ .Status }}'
-          )"
-
-          [ "$status" = "Running" ]
-        '';
-      };
-
-      restart.on = "never";
-      before = [ "devenv:enterShell" ];
-    };
-  };
-
-  scripts = {
-    nixodus-test.exec = ''
+    exec = ''
       set -euo pipefail
 
-      echo "########################################"
-      echo "#            NATIVE MACHINE            #"
-      echo "########################################"
-
-      set -x
-
       result="$(
-        nix build --print-out-paths --no-link ${config.git.root}#nixodus-test
+        nix build \
+          --print-out-paths \
+          --no-link \
+          "${config.git.root}#nixodus-test"
       )"
 
-      pkgs="$result/bin/nixodus-packages"
-
-      "$pkgs" hello --version
-      "$pkgs" sqlite3 --version
-      "$pkgs" psql --version
-      "$pkgs" postgres --version
       "$result/bin/pg_ctl" --version
 
-      set +x
-
-      echo "########################################"
-      echo "#    UBUNTU RISCV64 VIRTUAL MACHINE    #"
-      echo "########################################"
-
-      set -x
+      for program in hello sqlite3 psql postgres; do
+        "$result/bin/nixodus-packages" "$program" --version
+      done
 
       nixpkgs="github:NixOS/nixpkgs/$(
-        jq -r '
-          .nodes.[.root].inputs.nixpkgs as $nixpkgs |
-            .nodes[$nixpkgs].locked.rev
-        ' "${config.git.root}/flake.lock"
+        jaq -r '.nodes.[.nodes.[.root].inputs.nixpkgs].locked.rev' \
+          "${config.git.root}/flake.lock"
       )"
 
       nix_appimage="github:ralismark/nix-appimage/$(
-        jq -r '
-          .nodes.[.root].inputs."nix-appimage" as $nix_appimage |
-            .nodes[$nix_appimage].locked.rev
-        ' "${config.git.root}/flake.lock"
+        jaq -r '.nodes.[.nodes.[.root].inputs."nix-appimage"].locked.rev' \
+           "${config.git.root}/flake.lock"
       )"
 
       result="$(
@@ -92,24 +88,6 @@
             --nixpkgs "$nixpkgs" \
             --system riscv64-linux
       )"
-
-      limactl shell nixodus-riscv-test sudo rm -rf /tmp/result
-      limactl copy -r "$result" "nixodus-riscv-test:/tmp/result"
-
-      set +x
-
-      limactl shell nixodus-riscv-test sudo sh -c '
-        set -eux
-
-        result="/tmp/result"
-        pkgs="$result/bin/nixodus-packages"
-
-        "$pkgs" hello --version
-        "$pkgs" sqlite3 --version
-        "$pkgs" psql --version
-        "$pkgs" postgres --version
-        "$result/bin/pg_ctl" --version
-      '
     '';
   };
 }

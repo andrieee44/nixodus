@@ -13,7 +13,7 @@ You'll need [Nix](https://nixos.org/) installed. Run nixodus via
 replacing `hello` and `dos2unix` with the package(s) you want to build:
 
 ```sh
-$ nix run github:andrieee44/nixodus hello dos2unix
+nix run github:andrieee44/nixodus hello dos2unix
 ```
 
 This prints a derivation, a store path pointing to a tree of binaries
@@ -57,7 +57,7 @@ target another system, such as RISC-V. Consult
 for the list of supported Nix doubles.
 
 ```sh
-file "$(nix run github:andrieee44/nixodus -- --system riscv64-linux hello)/bin/nixodus-packages"
+$ file "$(nix run github:andrieee44/nixodus -- --system riscv64-linux hello)/bin/nixodus-packages"
 /nix/store/zs6j7sdg11klv8g2mvqhiv3ahv1wd2vc-nixodus-packages-real/bin/nixodus-packages: ELF 64-bit LSB executable, UCB RISC-V, RVC, double-float ABI, version 1 (SYSV), statically linked, not stripped
 ```
 

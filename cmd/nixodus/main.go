@@ -81,13 +81,6 @@ Flags:
 
 	flag.Parse()
 
-	argsFile, err = os.CreateTemp(os.TempDir(), "nixodus-*.json")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(argsFile.Name())
-	defer argsFile.Close()
-
 	args.Packages = flag.Args()
 	if flagJSON {
 		err = json.NewDecoder(os.Stdin).Decode(&args.Packages)
@@ -96,7 +89,17 @@ Flags:
 		}
 	}
 
+	argsFile, err = os.CreateTemp(os.TempDir(), "nixodus-*.json")
+	if err != nil {
+		return err
+	}
+
 	err = json.NewEncoder(argsFile).Encode(args)
+	if err != nil {
+		return err
+	}
+
+	err = argsFile.Close()
 	if err != nil {
 		return err
 	}
@@ -109,7 +112,17 @@ Flags:
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	return cmd.Run()
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	err = os.Remove(argsFile.Name())
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func main() {

@@ -112,7 +112,10 @@ func walkPackages(target string, decoder *json.Decoder) error {
 			return err
 		}
 
-		walkPackageBin(cmds, target, pkg, &keyVals, &keys)
+		err = walkPackageBin(cmds, target, pkg, &keyVals, &keys)
+		if err != nil {
+			return err
+		}
 	}
 
 	token, err = decoder.Token()

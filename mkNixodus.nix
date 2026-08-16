@@ -11,13 +11,20 @@ let
     inherit crossSystem;
   };
 
-  buildPackages = crossPkgs.buildPackages;
+  inherit (crossPkgs) buildPackages;
 
   codegen = buildPackages.buildGoModule {
+    doCheck = true;
     meta.mainProgram = "codegen";
     name = "nixodus-codegen";
     src = ./cmd/codegen;
     vendorHash = null;
+
+    checkPhase = ''
+      runHook preCheck
+      go vet ./...
+      runHook postCheck
+    '';
   };
 
   target-packages = buildPackages.writeText "nixodus-target-packages" (
@@ -41,7 +48,10 @@ let
         < "${target-packages}" > "nixodus-packages.gperf"
 
       gperf "nixodus-packages.gperf" --output-file "nixodus-packages.c"
-      $CC -o "$out/bin/nixodus-packages" "nixodus-packages.c"
+
+      $CC -Wall -Wextra -Werror \
+        -o "$out/bin/nixodus-packages" \
+        "nixodus-packages.c"
     '';
   };
 
