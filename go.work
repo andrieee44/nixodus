@@ -1,6 +1,6 @@
-go 1.26.3
+go 1.26.5
 
 use (
-	./cmd/codegen
-	./cmd/nixodus
+	./modules/nixodus-cmd/_src
+	./modules/nixodus/_src/codegen
 )

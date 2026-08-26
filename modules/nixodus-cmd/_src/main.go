@@ -14,11 +14,10 @@ var mainNix string
 
 func run() error {
 	type nixArgs struct {
-		NixAppImage string
+		CrossSystem string
 		Nixodus     string
 		Nixpkgs     string
 		Packages    []string
-		System      string
 	}
 
 	var (
@@ -34,9 +33,10 @@ func run() error {
 Bundle multiple Nix PACKAGE(S) into a single multicall binary
 
 Examples:
+  nix run github:andrieee44/nixodus -- hello haskell.compiler.ghcHEAD
   %[1]s hello haskell.compiler.ghcHEAD
-  %[1]s --system riscv64-linux hello haskell.compiler.ghcHEAD
-  echo '[ "hello", "haskell.compiler.ghcHEAD" ]' | %[1]s --json
+  %[1]s -cross-system riscv64-linux hello haskell.compiler.ghcHEAD
+  echo '[ "hello", "haskell.compiler.ghcHEAD" ]' | %[1]s -json
 
 Flags:
 `, os.Args[0])
@@ -45,10 +45,10 @@ Flags:
 	}
 
 	flag.StringVar(
-		&args.NixAppImage,
-		"nix-appimage",
-		"github:ralismark/nix-appimage",
-		"nix-appimage flake reference",
+		&args.CrossSystem,
+		"cross-system",
+		"CURRENT",
+		`Target platform e.g. "x86_64-linux"`,
 	)
 
 	flag.StringVar(
@@ -61,15 +61,8 @@ Flags:
 	flag.StringVar(
 		&args.Nixpkgs,
 		"nixpkgs",
-		"github:NixOS/nixpkgs/nixos-26.05",
+		"github:NixOS/nixpkgs/nixos-unstable",
 		"nixpkgs flake reference",
-	)
-
-	flag.StringVar(
-		&args.System,
-		"system",
-		"CURRENT",
-		`Target platform e.g. "x86_64-linux"`,
 	)
 
 	flag.BoolVar(

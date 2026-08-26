@@ -5,6 +5,9 @@
     shellcheck.enable = true;
     shfmt.enable = true;
 
+    # Link checker
+    lychee.enable = true;
+
     # Go
     gofmt.enable = true;
     golangci-lint.enable = true;
@@ -24,13 +27,14 @@
 
     # Nix
     deadnix.enable = true;
+    flake-checker.enable = true;
+    nil.enable = true;
     nixfmt.enable = true;
     statix.enable = true;
 
-    # Nixodus
-    nixodus = {
+    flake-check = {
       enable = true;
-      entry = "devenv tasks run nixodus:test";
+      entry = ''nix flake check --all-systems "${config.git.root}"'';
       pass_filenames = false;
     };
 
@@ -46,48 +50,6 @@
 
   packages = with pkgs; [
     git
-    jaq
     nixfmt
   ];
-
-  tasks."nixodus:test" = {
-    before = [ "devenv:enterTest" ];
-
-    exec = ''
-      set -euo pipefail
-
-      result="$(
-        nix build \
-          --print-out-paths \
-          --no-link \
-          "${config.git.root}#nixodus-test"
-      )"
-
-      "$result/bin/pg_ctl" --version
-
-      for program in hello sqlite3 psql postgres; do
-        "$result/bin/nixodus-packages" "$program" --version
-      done
-
-      nixpkgs="github:NixOS/nixpkgs/$(
-        jaq -r '.nodes.[.nodes.[.root].inputs.nixpkgs].locked.rev' \
-          "${config.git.root}/flake.lock"
-      )"
-
-      nix_appimage="github:ralismark/nix-appimage/$(
-        jaq -r '.nodes.[.nodes.[.root].inputs."nix-appimage"].locked.rev' \
-           "${config.git.root}/flake.lock"
-      )"
-
-      result="$(
-        echo '[ "hello", "sqlite", "postgresql" ]' |
-          nix run "${config.git.root}" -- \
-            --json \
-            --nix-appimage "$nix_appimage" \
-            --nixodus "${config.git.root}" \
-            --nixpkgs "$nixpkgs" \
-            --system riscv64-linux
-      )"
-    '';
-  };
 }

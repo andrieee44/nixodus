@@ -16,8 +16,8 @@ let
   codegen = buildPackages.buildGoModule {
     doCheck = true;
     meta.mainProgram = "codegen";
-    name = "nixodus-codegen";
-    src = ./cmd/codegen;
+    name = "codegen";
+    src = ./codegen;
     vendorHash = null;
 
     checkPhase = ''
@@ -27,11 +27,11 @@ let
     '';
   };
 
-  target-packages = buildPackages.writeText "nixodus-target-packages" (
+  nixodusPackagesList = buildPackages.writeText "nixodus-packages-list" (
     builtins.toJSON (crossPackages crossPkgs)
   );
 
-  nixodus-packages = crossPkgs.stdenv.mkDerivation {
+  nixodusPackages = crossPkgs.stdenv.mkDerivation {
     dontUnpack = true;
     meta.mainProgram = "nixodus-packages";
     name = "nixodus-packages";
@@ -44,10 +44,11 @@ let
     buildPhase = ''
       mkdir -p "$out/bin"
 
-      "${lib.getExe codegen}" "$out/bin" \
-        < "${target-packages}" > "nixodus-packages.gperf"
+      codegen "$out/bin" \
+        < "${nixodusPackagesList}" \
+        > "nixodus-packages.gperf"
 
-      gperf "nixodus-packages.gperf" --output-file "nixodus-packages.c"
+      gperf --output-file "nixodus-packages.c" "nixodus-packages.gperf"
 
       $CC -Wall -Wextra -Werror \
         -o "$out/bin/nixodus-packages" \
@@ -57,26 +58,23 @@ let
 
   staticCallPackage = crossPkgs.pkgsStatic.callPackage;
 
-  appImage =
+  nixodusAppImage =
     staticCallPackage "${nix-appimage}/mkAppImage.nix"
       {
         mkappimage-apprun = staticCallPackage "${nix-appimage}/appruns/userns-chroot" { };
         mkappimage-runtime = staticCallPackage "${nix-appimage}/runtimes/appimage-type2-runtime" { };
       }
       {
-        program = lib.getExe nixodus-packages;
+        program = lib.getExe nixodusPackages;
       };
-
-  final =
-    crossPkgs.runCommand "nixodus-packages"
-      {
-        nativeBuildInputs = [ buildPackages.lndir ];
-      }
-      ''
-        mkdir -p "$out/bin"
-        lndir "${nixodus-packages}" "$out"
-        rm "$out/bin/nixodus-packages"
-        ln -s "${appImage}" "$out/bin/nixodus-packages"
-      '';
 in
-final
+buildPackages.runCommand "nixodus-packages-final"
+  {
+    nativeBuildInputs = [ buildPackages.lndir ];
+  }
+  ''
+    mkdir -p "$out/bin"
+    lndir "${nixodusPackages}" "$out"
+    rm "$out/bin/nixodus-packages"
+    ln -s "${nixodusAppImage}" "$out/bin/nixodus-packages"
+  ''
