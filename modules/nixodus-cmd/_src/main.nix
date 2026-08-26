@@ -6,7 +6,7 @@ let
 
   inherit (pkgs) buildPackages lib;
 
-  nixodus = (builtins.getFlake args.Nixodus).legacyPackages."${system}" {
+  nixodus = (builtins.getFlake args.Nixodus).legacyPackages."${system}".nixodus {
     crossSystem = if args.CrossSystem == "CURRENT" then system else args.CrossSystem;
     crossPackages =
       crossPkgs: map (pkg: lib.getAttrFromPath (lib.splitString "." pkg) crossPkgs) args.Packages;
