@@ -127,11 +127,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1787710150,
-        "narHash": "sha256-VbNBjCd4BUF6w9H+MIn0lUB7V6IWNKONuLd3G9GPRZY=",
+        "lastModified": 1787825770,
+        "narHash": "sha256-yBbXfMrcbLcARUnA5/ZG5W9MuKY33MKeIAaglEAxly0=",
         "owner": "andrieee44",
         "repo": "nixmax",
-        "rev": "50afdbf158f7fe0441c3544ee7f2f199e6051de3",
+        "rev": "379359550b2d3f95a76ce81d4144f6369a2fcbd1",
         "type": "github"
       },
       "original": {

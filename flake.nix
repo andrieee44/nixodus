@@ -12,6 +12,11 @@
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [ (import-tree ./modules) ];
 
+      perSystem = { self', ... }: {
+        apps.default = self'.apps.nixodus;
+        packages.default = self'.packages.nixodus;
+      };
+
       systems = [
         "aarch64-darwin"
         "aarch64-linux"

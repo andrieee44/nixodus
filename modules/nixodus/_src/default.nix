@@ -15,7 +15,6 @@ let
 
   codegen = buildPackages.buildGoModule {
     doCheck = true;
-    meta.mainProgram = "codegen";
     name = "codegen";
     src = ./codegen;
     vendorHash = null;
@@ -25,6 +24,11 @@ let
       go vet ./...
       runHook postCheck
     '';
+
+    meta = {
+      license = lib.licenses.agpl3Plus;
+      mainProgram = "codegen";
+    };
   };
 
   nixodusPackagesList = buildPackages.writeText "nixodus-packages-list" (
@@ -33,7 +37,6 @@ let
 
   nixodusPackages = crossPkgs.stdenv.mkDerivation {
     dontUnpack = true;
-    meta.mainProgram = "nixodus-packages";
     name = "nixodus-packages";
 
     nativeBuildInputs = [
@@ -54,6 +57,11 @@ let
         -o "$out/bin/nixodus-packages" \
         "nixodus-packages.c"
     '';
+
+    meta = {
+      license = lib.licenses.agpl3Plus;
+      mainProgram = "nixodus-packages";
+    };
   };
 
   staticCallPackage = crossPkgs.pkgsStatic.callPackage;
@@ -70,6 +78,7 @@ let
 in
 buildPackages.runCommand "nixodus-packages-final"
   {
+    meta.license = lib.licenses.agpl3Plus;
     nativeBuildInputs = [ buildPackages.lndir ];
   }
   ''

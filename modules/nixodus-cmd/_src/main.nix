@@ -12,9 +12,13 @@ let
       crossPkgs: map (pkg: lib.getAttrFromPath (lib.splitString "." pkg) crossPkgs) args.Packages;
   };
 in
-buildPackages.runCommand "nixodus-packages-real" { } ''
-  mkdir -p "$out/bin"
-  cp -r "${nixodus}/bin/." "$out/bin"
-  cp -L --remove-destination \
-    "${nixodus}/bin/nixodus-packages" "$out/bin/nixodus-packages"
-''
+buildPackages.runCommand "nixodus-packages-real"
+  {
+    meta.license = lib.licenses.agpl3Plus;
+  }
+  ''
+    mkdir -p "$out/bin"
+    cp -r "${nixodus}/bin/." "$out/bin"
+    cp -L --remove-destination \
+      "${nixodus}/bin/nixodus-packages" "$out/bin/nixodus-packages"
+  ''

@@ -1,37 +1,39 @@
 {
   perSystem =
-    { pkgs, self', ... }:
     {
-      checks.nixodus = self'.packages.nixodus;
+      lib,
+      pkgs,
+      self',
+      ...
+    }:
+    let
+      nixodus = self'.packages.nixodus;
+    in
+    {
+      checks.nixodus = nixodus;
 
-      apps = {
-        default = self'.apps.nixodus;
-
-        nixodus = {
-          inherit (self'.packages.nixodus) meta;
-          program = self'.packages.nixodus;
-        };
+      apps.nixodus = {
+        inherit (nixodus) meta;
+        program = nixodus;
       };
 
-      packages = {
-        default = self'.packages.nixodus;
+      packages.nixodus = pkgs.buildGoModule {
+        doCheck = true;
+        name = "nixodus";
+        src = ./_src;
+        vendorHash = null;
 
-        nixodus = pkgs.buildGoModule {
-          doCheck = true;
-          name = "nixodus";
-          src = ./_src;
-          vendorHash = null;
+        checkPhase = ''
+          runHook preCheck
+          go vet ./...
+          runHook postCheck
+        '';
 
-          checkPhase = ''
-            runHook preCheck
-            go vet ./...
-            runHook postCheck
-          '';
-
-          meta = {
-            description = "CLI application for nixodus";
-            mainProgram = "nixodus";
-          };
+        meta = {
+          description = "nixodus - NIX eXODUS - portable multicall binary builder";
+          homepage = "https://github.com/andrieee44/nixodus";
+          license = lib.licenses.agpl3Plus;
+          mainProgram = "nixodus";
         };
       };
     };
