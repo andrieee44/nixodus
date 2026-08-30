@@ -47,7 +47,7 @@ let
       result
     else
       throw (
-        "flake '${flakeStr}' does not provide attribute"
+        "flake '${flakeStr}' does not provide attribute "
         + "'packages.${crossSystem}.${pathStr}', "
         + "'legacyPackages.${crossSystem}.${pathStr}' or '${pathStr}'"
       );
