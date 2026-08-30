@@ -29,17 +29,16 @@ func run() error {
 	)
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, `Usage: %[1]s [OPTION]... <PACKAGE>...
+		fmt.Fprintln(os.Stderr, `Usage: nixodus [OPTION]... <PACKAGE>...
 Bundle multiple Nix PACKAGE(S) into a single multicall binary
 
 Examples:
-  nix run github:andrieee44/nixodus -- hello haskell.compiler.ghcHEAD
-  %[1]s hello haskell.compiler.ghcHEAD
-  %[1]s -cross-system riscv64-linux hello haskell.compiler.ghcHEAD
-  echo '[ "hello", "haskell.compiler.ghcHEAD" ]' | %[1]s -json
+  nix run github:andrieee44/nixodus -- nixpkgs#hello nixpkgs#tree
+  nixodus nixpkgs#hello nixpkgs#tree
+  nixodus -cross-system aarch64-linux nixpkgs#hello nixpkgs#tree
+  echo '[ "nixpkgs#hello", "nixpkgs#tree" ]' | nixodus -json
 
-Flags:
-`, os.Args[0])
+Flags:`)
 
 		flag.PrintDefaults()
 	}
@@ -48,7 +47,7 @@ Flags:
 		&args.CrossSystem,
 		"cross-system",
 		"CURRENT",
-		`Target platform e.g. "x86_64-linux"`,
+		`Target platform e.g. "aarch64-linux"`,
 	)
 
 	flag.StringVar(
@@ -87,6 +86,10 @@ Flags:
 		return err
 	}
 
+	defer func() {
+		_ = os.Remove(argsFile.Name())
+	}()
+
 	err = json.NewEncoder(argsFile).Encode(args)
 	if err != nil {
 		return err
@@ -106,11 +109,6 @@ Flags:
 	cmd.Stderr = os.Stderr
 
 	err = cmd.Run()
-	if err != nil {
-		return err
-	}
-
-	err = os.Remove(argsFile.Name())
 	if err != nil {
 		return err
 	}

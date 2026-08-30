@@ -25,7 +25,7 @@ building the multicall binary.
 
 ### -cross-system :: String
 
-Target platform e.g. "x86_64-linux" (default "CURRENT")
+Target platform e.g. "aarch64-linux" (default "CURRENT")
 
 ### -json :: Bool
 
@@ -42,19 +42,19 @@ nixpkgs flake reference (default "github:NixOS/nixpkgs/nixos-unstable")
 ## EXAMPLES
 
 ```shell
-nix run github:andrieee44/nixodus -- hello haskell.compiler.ghcHEAD
+nix run github:andrieee44/nixodus -- nixpkgs#hello nixpkgs#tree
 ```
 
 ```shell
-nixodus hello haskell.compiler.ghcHEAD
+nixodus nixpkgs#hello nixpkgs#tree
 ```
 
 ```shell
-nixodus -cross-system riscv64-linux hello haskell.compiler.ghcHEAD
+nixodus -cross-system aarch64-darwin nixpkgs#hello nixpkgs#tree
 ```
 
 ```shell
-echo '[ "hello", "haskell.compiler.ghcHEAD" ]' | nixodus -json
+echo '[ "nixpkgs#hello", "nixpkgs#tree" ]' | nixodus -json
 ```
 
 ## COPYRIGHT
