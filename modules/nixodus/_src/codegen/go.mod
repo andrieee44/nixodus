@@ -1,3 +1,3 @@
-module github.com/andrieee44/nixless/src/codegen
+module github.com/andrieee44/nixodus/modules/nixodus/_src/codegen
 
 go 1.26.5

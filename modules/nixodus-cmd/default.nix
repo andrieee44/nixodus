@@ -20,7 +20,7 @@
       packages.nixodus = pkgs.buildGoModule {
         doCheck = true;
         name = "nixodus";
-        src = ./_src;
+        src = ./_src/nixodus;
         vendorHash = null;
 
         checkPhase = ''
