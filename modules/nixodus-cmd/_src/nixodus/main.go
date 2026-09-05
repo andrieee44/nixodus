@@ -3,6 +3,7 @@ package main
 import (
 	_ "embed"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -81,6 +82,10 @@ Flags:`)
 		}
 	}
 
+	if len(args.Packages) == 0 {
+		return errors.New("no packages specified")
+	}
+
 	argsFile, err = os.CreateTemp(os.TempDir(), "nixodus-*.json")
 	if err != nil {
 		return err
@@ -121,7 +126,10 @@ func main() {
 
 	err = run()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintf(os.Stderr, `nixodus: %v
+nixodus: Try 'nixodus -help' for more information.
+`, err)
+
 		os.Exit(1)
 	}
 }
