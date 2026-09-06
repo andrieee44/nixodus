@@ -67,7 +67,7 @@ crossPkgs: with crossPkgs; [
   hello
   postgresql
   sqlite
-];
+]
 ```
 
 ### crossSystem :: String
