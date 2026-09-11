@@ -19,42 +19,40 @@
         let
           nixmax = inputs.nixmax.legacyPackages."${system}";
 
-          crossPkgs =
-            system:
-            import pkgs.path {
-              inherit (pkgs.stdenv.buildPlatform) system;
-              crossSystem = system;
-            };
-
-          nixodusBuild =
-            system:
-            self'.legacyPackages.nixodus {
-              crossSystem = system;
-
-              crossPackages =
-                crossPkgs: with crossPkgs; [
-                  hello
-                  postgresql
-                  sqlite
-                ];
-            };
-
           nixodusTest =
             system:
             lib.getExe (
-              (crossPkgs system).writeShellApplication {
-                name = "nixodus-test";
-                runtimeInputs = [ (nixodusBuild system) ];
+              (import pkgs.path {
+                inherit (pkgs.stdenv.buildPlatform) system;
+                crossSystem = system;
+              }).writeShellApplication
+                {
+                  name = "nixodus-test-${system}";
 
-                text = ''
-                  modprobe fuse
-                  pg_ctl --version
+                  runtimeInputs = [
+                    (self'.legacyPackages.nixodus {
+                      crossSystem = system;
 
-                  for program in hello postgres psql sqlite3; do
-                    nixodus-packages "$program" --version
-                  done
-                '';
-              }
+                      crossPackages =
+                        crossPkgs: with crossPkgs; [
+                          coreutils
+                          hello
+                          postgresql
+                          sqlite
+                        ];
+                    })
+                  ];
+
+                  text = ''
+                    modprobe fuse
+                    pg_ctl --version
+                    [ "$(TESTVAR=1 printenv TESTVAR)" = "1" ]
+
+                    for program in hello postgres psql sqlite3; do
+                      nixodus-packages "$program" --version
+                    done
+                  '';
+                }
             );
         in
         {

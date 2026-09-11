@@ -3,7 +3,6 @@ package main
 import (
 	_ "embed"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -30,142 +29,74 @@ func hexString(s string) string {
 	return builder.String()
 }
 
-func walkPackageBin(
-	cmds map[string]string,
-	target, pkg string,
-	keyVals, keys *strings.Builder,
-) error {
+func run() error {
 	var (
-		entries       []os.DirEntry
-		fi            os.FileInfo
-		name, prevPkg string
-		i             int
-		ok            bool
-		err           error
+		outBin, name, prevPkg string
+		cmds                  map[string]string
+		pkgs                  []string
+		entries               []os.DirEntry
+		fi                    os.FileInfo
+		keys, keyVals         strings.Builder
+		i, j                  int
+		ok                    bool
+		err                   error
 	)
 
-	entries, err = os.ReadDir(filepath.Join(pkg, "bin"))
-	if err != nil {
-		return err
-	}
-
-	for i = range entries {
-		fi, err = entries[i].Info()
-		if err != nil {
-			return err
-		}
-
-		if fi.IsDir() || fi.Mode()&0111 == 0 {
-			continue
-		}
-
-		name = entries[i].Name()
-
-		prevPkg, ok = cmds[name]
-		if ok {
-			return fmt.Errorf(
-				"%q: duplicate binary %q (used by %q)",
-				pkg, name, prevPkg,
-			)
-		}
-
-		cmds[name] = pkg
-
-		fmt.Fprintf(
-			keyVals,
-			"%s, %s\n",
-			hexString(name),
-			hexString(filepath.Join(pkg, "bin", name)),
-		)
-
-		fmt.Fprintf(
-			keys,
-			"%s,\n",
-			hexString(name),
-		)
-
-		err = os.Symlink("nixodus-packages", filepath.Join(target, name))
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func walkPackages(target string, decoder *json.Decoder) error {
-	var (
-		keyVals, keys strings.Builder
-		cmds          map[string]string
-		pkg           string
-		token         json.Token
-		delim         json.Delim
-		ok            bool
-		err           error
-	)
-
+	outBin = os.Args[1]
 	cmds = make(map[string]string)
 
-	for decoder.More() {
-		err = decoder.Decode(&pkg)
-		if err != nil {
-			return err
-		}
-
-		err = walkPackageBin(cmds, target, pkg, &keyVals, &keys)
-		if err != nil {
-			return err
-		}
-	}
-
-	token, err = decoder.Token()
+	err = json.NewDecoder(os.Stdin).Decode(&pkgs)
 	if err != nil {
 		return err
 	}
 
-	delim, ok = token.(json.Delim)
-	if !ok || delim != ']' {
-		return errors.New("expected ']'")
+	for i = range pkgs {
+		entries, err = os.ReadDir(filepath.Join(pkgs[i], "bin"))
+		if err != nil {
+			return err
+		}
+
+		for j = range entries {
+			fi, err = entries[j].Info()
+			if err != nil {
+				return err
+			}
+
+			if fi.IsDir() || fi.Mode()&0111 == 0 {
+				continue
+			}
+
+			name = entries[j].Name()
+
+			prevPkg, ok = cmds[name]
+			if ok {
+				return fmt.Errorf(
+					"%q: duplicate binary %q (used by %q)",
+					pkgs[i], name, prevPkg,
+				)
+			}
+
+			cmds[name] = pkgs[i]
+			fmt.Fprintf(&keys, "%s,\n", hexString(name))
+
+			fmt.Fprintf(
+				&keyVals,
+				"%s, %s\n",
+				hexString(name),
+				hexString(filepath.Join(pkgs[i], "bin", name)),
+			)
+
+			err = os.Symlink("nixodus-packages", filepath.Join(outBin, name))
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	_, err = strings.NewReplacer(
 		"{{ GPERF KEY-VALUES }}", keyVals.String(),
 		"{{ GPERF KEYS }}", keys.String(),
-	).WriteString(
-		os.Stdout,
-		mainGperf,
-	)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func run() error {
-	var (
-		target  string
-		decoder *json.Decoder
-		token   json.Token
-		delim   json.Delim
-		ok      bool
-		err     error
-	)
-
-	target = os.Args[1]
-	decoder = json.NewDecoder(os.Stdin)
-
-	token, err = decoder.Token()
-	if err != nil {
-		return err
-	}
-
-	delim, ok = token.(json.Delim)
-	if !ok || delim != '[' {
-		return errors.New("expected '['")
-	}
-
-	err = walkPackages(target, decoder)
+	).WriteString(os.Stdout, mainGperf)
 	if err != nil {
 		return err
 	}
@@ -178,7 +109,7 @@ func main() {
 
 	err = run()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintf(os.Stderr, "codegen: %v\n", err)
 		os.Exit(1)
 	}
 }

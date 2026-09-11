@@ -53,7 +53,11 @@ let
 
       gperf --output-file "nixodus-packages.c" "nixodus-packages.gperf"
 
-      $CC -Wall -Wextra -Werror \
+      $CC \
+        -Wall \
+        -Werror \
+        -Wextra \
+        -Wpedantic \
         -o "$out/bin/nixodus-packages" \
         "nixodus-packages.c"
     '';

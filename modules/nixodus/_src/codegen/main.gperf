@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-extern char **environ;
 %}
 
 struct bin_entry {
@@ -26,14 +24,12 @@ static const char *const binaries[] = {
     {{ GPERF KEYS }}
 };
 
-#define PROGRAM "nixodus-packages"
-
 static void print_usage() {
     size_t i;
 
-    fprintf(stderr, "usage: %s <binary> [args...]\n", PROGRAM);
-    fprintf(stderr, "   or: <binary> [args...]\n\n");
-    fprintf(stderr, "available binaries:\n");
+    fputs("Usage: nixodus-packages <BINARY> [ARGS]...\n", stderr);
+    fputs("       <BINARY> [ARGS]...\n\n", stderr);
+    fputs("Binaries:\n", stderr);
 
     for (i = 0; i < sizeof(binaries) / sizeof(binaries[0]); i++) {
         fprintf(stderr, "  %s\n", binaries[i]);
@@ -47,7 +43,7 @@ int main(int argc, char **argv) {
     bin = basename(argv[0]);
     new_argv = argv;
 
-    if (strcmp(bin, PROGRAM) == 0) {
+    if (strcmp(bin, "nixodus-packages") == 0) {
         if (argc < 2) {
             print_usage();
 
@@ -60,14 +56,14 @@ int main(int argc, char **argv) {
 
     entry = bin_lookup(bin, strlen(bin));
     if (entry == NULL) {
-        fprintf(stderr, "unknown binary: %s\n", bin);
+        fprintf(stderr, "nixodus-packages: unknown binary %s\n", bin);
         print_usage();
 
         return 1;
     }
 
-    execve(entry->path, new_argv, environ);
-    perror("execve");
+    execv(entry->path, new_argv);
+    perror("execv");
 
     return 1;
 }
