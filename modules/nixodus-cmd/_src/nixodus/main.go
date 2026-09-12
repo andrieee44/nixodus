@@ -118,10 +118,8 @@ func main() {
 
 	err = run()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, `nixodus: %v
-Try 'nixodus -help' for more information.
-`, err)
-
+		fmt.Fprintf(os.Stderr, "nixodus: %v\n\n", err)
+		flag.Usage()
 		os.Exit(1)
 	}
 }

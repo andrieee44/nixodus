@@ -27,8 +27,8 @@ static const char *const binaries[] = {
 static void print_usage() {
     size_t i;
 
-    fputs("Usage: nixodus-packages <BINARY> [ARGS]...\n", stderr);
-    fputs("       <BINARY> [ARGS]...\n\n", stderr);
+    fputs("Usage: nixodus-packages <BINARY> [ARG]...\n", stderr);
+    fputs("       <BINARY> [ARG]...\n\n", stderr);
     fputs("Binaries:\n", stderr);
 
     for (i = 0; i < sizeof(binaries) / sizeof(binaries[0]); i++) {
