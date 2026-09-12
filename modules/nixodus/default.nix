@@ -46,7 +46,7 @@
                   text = ''
                     modprobe fuse
                     pg_ctl --version
-                    [ "$(TESTVAR=1 printenv TESTVAR)" = "1" ]
+                    [ "$(TESTVAR=1 nixodus-packages printenv TESTVAR)" = "1" ]
 
                     for program in hello postgres psql sqlite3; do
                       nixodus-packages "$program" --version
