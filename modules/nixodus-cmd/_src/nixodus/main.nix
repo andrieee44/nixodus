@@ -3,67 +3,47 @@ let
   args = builtins.fromJSON (builtins.readFile argsFile);
   system = builtins.currentSystem;
   crossSystem = if args.CrossSystem == "CURRENT" then system else args.CrossSystem;
-  pkgs = (builtins.getFlake args.Nixpkgs).legacyPackages."${system}";
+  pkgs = (builtins.getFlake "{{ NIXPKGS }}").legacyPackages."${system}";
 
   inherit (pkgs) buildPackages lib;
-
-  tryAttr =
-    before: after: flake:
-    lib.attrByPath (before ++ [ crossSystem ] ++ after) null flake;
-
-  flakeDefault =
-    flakeStr:
-    let
-      flake = builtins.getFlake flakeStr;
-
-      result = lib.findFirst (x: x != null) null [
-        (tryAttr [ "packages" ] [ "default" ] flake)
-        (tryAttr [ "defaultPackage" ] [ "default" ] flake)
-      ];
-    in
-    if result != null then
-      result
-    else
-      throw (
-        "flake '${flakeStr}' does not provide attribute "
-        + "'packages.${crossSystem}.default' or "
-        + "'defaultPackage.${crossSystem}.default'"
-      );
-
-  flakeAttrs =
-    flakeStr: attrs:
-    let
-      flake = builtins.getFlake flakeStr;
-      pathStr = builtins.concatStringsSep "#" attrs;
-      path = lib.splitString "." pathStr;
-
-      result = lib.findFirst (x: x != null) null [
-        (tryAttr [ "packages" ] path flake)
-        (tryAttr [ "legacyPackages" ] path flake)
-        (lib.attrByPath path null flake)
-      ];
-    in
-    if result != null then
-      result
-    else
-      throw (
-        "flake '${flakeStr}' does not provide attribute "
-        + "'packages.${crossSystem}.${pathStr}', "
-        + "'legacyPackages.${crossSystem}.${pathStr}' or '${pathStr}'"
-      );
 
   parseFlake =
     flakeRef:
     let
       fields = lib.splitString "#" flakeRef;
       flakeStr = builtins.head fields;
+      flake = builtins.getFlake flakeStr;
     in
     if builtins.length fields == 1 then
-      flakeDefault flakeStr
+      let
+        result = lib.findFirst (x: x != null) null [
+          (lib.attrByPath [ "packages" crossSystem "default" ] null flake)
+          (lib.attrByPath [ "defaultPackage" crossSystem "default" ] null flake)
+        ];
+      in
+      lib.throwIfNot (result != null) (
+        "flake '${flakeStr}' does not provide attribute "
+        + "'packages.${crossSystem}.default' or "
+        + "'defaultPackage.${crossSystem}.default'"
+      ) result
     else
-      flakeAttrs flakeStr (builtins.tail fields);
+      let
+        pathStr = builtins.concatStringsSep "#" (builtins.tail fields);
+        path = lib.splitString "." pathStr;
 
-  nixodus = (builtins.getFlake args.Nixodus).legacyPackages."${system}".nixodus {
+        result = lib.findFirst (x: x != null) null [
+          (lib.attrByPath ([ "packages" ] ++ path) null flake)
+          (lib.attrByPath ([ "legacyPackages" ] ++ path) null flake)
+          (lib.attrByPath path null flake)
+        ];
+      in
+      lib.throwIfNot (result != null) (
+        "flake '${flakeStr}' does not provide attribute "
+        + "'packages.${crossSystem}.${pathStr}', "
+        + "'legacyPackages.${crossSystem}.${pathStr}' or '${pathStr}'"
+      ) result;
+
+  nixodus-packages = (builtins.getFlake "{{ NIXODUS }}").legacyPackages."${system}".nixodus {
     inherit crossSystem;
     crossPackages = _: map parseFlake args.Packages;
   };
@@ -74,7 +54,7 @@ buildPackages.runCommand "nixodus-packages-real"
   }
   ''
     mkdir -p "$out/bin"
-    cp -r "${nixodus}/bin/." "$out/bin"
+    cp -r "${nixodus-packages}/bin/." "$out/bin"
     cp -L --remove-destination \
-      "${nixodus}/bin/nixodus-packages" "$out/bin/nixodus-packages"
+      "${nixodus-packages}/bin/nixodus-packages" "$out/bin/nixodus-packages"
   ''

@@ -1,3 +1,4 @@
+{ inputs, self, ... }:
 {
   perSystem =
     { pkgs, self', ... }:
@@ -6,11 +7,15 @@
     in
     {
       checks.nixodus = nixodus;
-      packages.nixodus = pkgs.callPackage ./_src { };
 
       apps.nixodus = {
         inherit (nixodus) meta;
         program = nixodus;
+      };
+
+      packages.nixodus = pkgs.callPackage ./_src {
+        nixodusRev = self.rev;
+        nixpkgsRev = inputs.nixpkgs.rev;
       };
     };
 }

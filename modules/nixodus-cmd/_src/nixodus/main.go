@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 )
@@ -16,8 +17,6 @@ var mainNix string
 func run() error {
 	type nixArgs struct {
 		CrossSystem string
-		Nixodus     string
-		Nixpkgs     string
 		Packages    []string
 	}
 
@@ -31,6 +30,8 @@ func run() error {
 
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, `Usage: nixodus [OPTION]... <PACKAGE>...
+       nix run github:andrieee44/nixodus -- [OPTION]... <PACKAGE>...
+
 Bundle multiple Nix PACKAGE(S) into a single multicall binary
 
 Examples:
@@ -49,20 +50,6 @@ Flags:`)
 		"cross-system",
 		"CURRENT",
 		`Target platform e.g. "aarch64-linux"`,
-	)
-
-	flag.StringVar(
-		&args.Nixodus,
-		"nixodus",
-		"github:andrieee44/nixodus",
-		"nixodus flake reference",
-	)
-
-	flag.StringVar(
-		&args.Nixpkgs,
-		"nixpkgs",
-		"github:NixOS/nixpkgs/nixos-unstable",
-		"nixpkgs flake reference",
 	)
 
 	flag.BoolVar(
@@ -92,7 +79,12 @@ Flags:`)
 	}
 
 	defer func() {
-		_ = os.Remove(argsFile.Name())
+		var err error
+
+		err = os.Remove(argsFile.Name())
+		if err != nil {
+			slog.Error("nixodus", "error", err)
+		}
 	}()
 
 	err = json.NewEncoder(argsFile).Encode(args)
@@ -127,7 +119,7 @@ func main() {
 	err = run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, `nixodus: %v
-nixodus: Try 'nixodus -help' for more information.
+Try 'nixodus -help' for more information.
 `, err)
 
 		os.Exit(1)
