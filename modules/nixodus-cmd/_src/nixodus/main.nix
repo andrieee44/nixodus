@@ -32,8 +32,8 @@ let
         path = lib.splitString "." pathStr;
 
         result = lib.findFirst (x: x != null) null [
-          (lib.attrByPath ([ "packages" ] ++ path) null flake)
-          (lib.attrByPath ([ "legacyPackages" ] ++ path) null flake)
+          (lib.attrByPath ([ "packages" ] ++ [ crossSystem ] ++ path) null flake)
+          (lib.attrByPath ([ "legacyPackages" ] ++ [ crossSystem ] ++ path) null flake)
           (lib.attrByPath path null flake)
         ];
       in
