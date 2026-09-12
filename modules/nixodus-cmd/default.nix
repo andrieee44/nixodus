@@ -14,7 +14,7 @@
       };
 
       packages.nixodus = pkgs.callPackage ./_src {
-        nixodusRev = self.rev;
+        nixodusRev = self.rev or "";
         nixpkgsRev = inputs.nixpkgs.rev;
       };
     };
