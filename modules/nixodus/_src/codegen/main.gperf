@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
     }
 
     execv(entry->path, new_argv);
-    perror("execv");
+    perror("nixodus-packages: execv");
 
     return 1;
 }
