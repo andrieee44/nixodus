@@ -31,14 +31,6 @@ Target platform e.g. "aarch64-linux" (default "CURRENT")
 
 Read JSON from stdin
 
-### -nixodus :: String
-
-nixodus flake reference (default "github:andrieee44/nixodus")
-
-### -nixpkgs :: String
-
-nixpkgs flake reference (default "github:NixOS/nixpkgs/nixos-unstable")
-
 ## EXAMPLES
 
 ```shell
